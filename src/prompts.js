@@ -15,8 +15,8 @@ OUTPUT REQUIREMENTS:
 
 // Branch B stage 1: canonical dual-panel preview (BLOCK-style), used if the
 // direct-atlas branch proves inconsistent.
-export const PANEL_PROMPT = `TASK: Render the character from the image as a Minecraft player character (blocky, cubic limbs, pixel-art texture), shown as TWO full-body orthographic views side by side on a plain white background: FRONT view on the left half, BACK view on the right half.
+export const PANEL_PROMPT = `TASK: Render the character from the image as a Minecraft player character (blocky, cubic limbs, pixel-art texture), shown as TWO full-body orthographic views side by side on a solid magenta (#FF00FF) background: FRONT view on the left half, BACK view on the right half.
 
-STRICT LAYOUT: square image; each view centered in its half; character standing straight, arms at sides, legs together; head top at 5% image height, feet at 95%; no shadows, no props, no text, no ground.
+STRICT LAYOUT: square image; each view centered in its half; character standing straight, arms at sides, legs together; head top at 5% image height, feet at 95%; no shadows, no props, no text, no ground; nothing magenta on the character itself.
 
 The character's face, hair, clothing and colors must match the input character faithfully, translated into Minecraft pixel-art style.`;
