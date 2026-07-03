@@ -146,7 +146,7 @@ function writeFace(atlas, grid, cw, rect, dx, dy) {
 }
 
 // Synthesize a side face by tiling the edge column of a source face.
-function synthSide(atlas, srcRect, srcEdgeX, dstRect, { darken = 0.9 } = {}) {
+export function synthSide(atlas, srcRect, srcEdgeX, dstRect, { darken = 0.9 } = {}) {
   for (let y = 0; y < dstRect.h; y++) {
     const s = AIDX(srcRect.x + srcEdgeX, srcRect.y + Math.min(y, srcRect.h - 1));
     for (let x = 0; x < dstRect.w; x++) {
@@ -160,7 +160,7 @@ function synthSide(atlas, srcRect, srcEdgeX, dstRect, { darken = 0.9 } = {}) {
 }
 
 // Synthesize top/bottom by tiling a source row.
-function synthCap(atlas, srcRect, srcEdgeY, dstRect, { darken = 1 } = {}) {
+export function synthCap(atlas, srcRect, srcEdgeY, dstRect, { darken = 1 } = {}) {
   for (let y = 0; y < dstRect.h; y++) {
     for (let x = 0; x < dstRect.w; x++) {
       const s = AIDX(srcRect.x + Math.min(x, srcRect.w - 1), srcRect.y + srcEdgeY);

@@ -75,7 +75,7 @@ This design follows the same conclusion as the BLOCK paper (arXiv 2603.03964), w
 
 ## Free no-LLM fallback
 
-The pipeline also includes a fully deterministic generator that needs no API key and costs nothing. It locates the character in the image, extracts its primary colors (hair, face, torso, legs), and paints a simple skin with fixed pixels for the eyes and mouth. The same input always produces a byte-identical skin.
+The pipeline also includes a fully deterministic generator that needs no API key and costs nothing. It locates the character in the image (background keying from the border palette, largest connected component, and a center-prior fallback for photos with busy backgrounds), finds the face from skin-tone row statistics, splits the subject into head, torso, arm, and leg regions, and grid-samples each region onto the matching skin faces, so clothing colors and patterns land on the body. Fixed pixels are stamped for the eyes and mouth. It handles full-body art, busts, and selfies, and the same input always produces a byte-identical skin.
 
 ```sh
 node src/pipeline.js character.png skin.png --branch fallback
@@ -106,7 +106,7 @@ npm test
 
 - `tests/mock-test.js` degrades a real skin into a blurred, noisy mock model output and checks the pipeline reconstructs it with at most 2% pixel error
 - `tests/panel-roundtrip.js` renders a real skin as a front/back panel, maps it back through the panel projector, and requires exact front and back face recovery
-- `tests/fallback-test.js` checks the no-LLM fallback produces a valid skin and that two runs on the same input are byte-identical
+- `tests/fallback-test.js` checks the no-LLM fallback on three image types: a real bust image (valid and byte-identical output), a synthetic full-body figure (head, torso, and leg colors must land on the right skin faces), and a synthetic selfie with a busy photo background (subject detection must not fail)
 
 ## Module map
 
@@ -117,7 +117,7 @@ npm test
 | `src/gemini.js` | minimal REST client for Gemini image models |
 | `src/prompts.js` | the panel and atlas generation prompts |
 | `src/panelmap.js` | front+back panel to atlas projection, face synthesis |
-| `src/fallback.js` | deterministic no-LLM skin painter (color extraction + fixed face) |
+| `src/fallback.js` | deterministic no-LLM generator (subject detection + region mapping) |
 | `src/downsample.js` | dominant-color downsampler |
 | `src/enforce.js` | transparency and opacity enforcement |
 | `src/render.js` | front/back preview renderer |
