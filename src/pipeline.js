@@ -8,6 +8,7 @@ import { generateImage } from './gemini.js';
 import { ATLAS_PROMPT, PANEL_PROMPT } from './prompts.js';
 import { downsampleToSkin, writeSkinPng } from './downsample.js';
 import { panelToAtlas } from './panelmap.js';
+import { fallbackAtlas } from './fallback.js';
 import { enforceLayout, flatBaseFaces } from './enforce.js';
 import { renderPreview } from './render.js';
 import { validateSkin } from './validate.js';
@@ -23,22 +24,39 @@ export async function characterToSkin(characterImage, outSkin, opts = {}) {
   } = opts;
   const rawOut = outSkin.replace(/\.png$/, `.raw-${branch}.png`);
 
-  let genOutput;
-  if (mockAtlas) {
+  let usedBranch = branch;
+  let fallbackReason = null;
+  let genOutput = null;
+  let raw;
+  if (branch === 'fallback') {
+    raw = await fallbackAtlas(characterImage, { variant });
+  } else if (mockAtlas) {
     genOutput = mockAtlas;
+    raw =
+      branch === 'panel'
+        ? await panelToAtlas(genOutput, { variant })
+        : await downsampleToSkin(genOutput);
   } else {
-    const [buf] = await generateImage({
-      prompt: branch === 'panel' ? PANEL_PROMPT : ATLAS_PROMPT,
-      images: branch === 'panel' ? [characterImage] : [REFERENCE_ATLAS, characterImage],
-    });
-    await writeFile(rawOut, buf);
-    genOutput = rawOut;
+    try {
+      const [buf] = await generateImage({
+        prompt: branch === 'panel' ? PANEL_PROMPT : ATLAS_PROMPT,
+        images: branch === 'panel' ? [characterImage] : [REFERENCE_ATLAS, characterImage],
+      });
+      await writeFile(rawOut, buf);
+      genOutput = rawOut;
+      raw =
+        branch === 'panel'
+          ? await panelToAtlas(genOutput, { variant })
+          : await downsampleToSkin(genOutput);
+    } catch (err) {
+      // Generation or mapping failed: fall back to the deterministic no-LLM
+      // painter so every input still yields a valid skin.
+      usedBranch = 'fallback';
+      fallbackReason = String(err?.message ?? err);
+      genOutput = null;
+      raw = await fallbackAtlas(characterImage, { variant });
+    }
   }
-
-  const raw =
-    branch === 'panel'
-      ? await panelToAtlas(genOutput, { variant })
-      : await downsampleToSkin(genOutput);
   const flat = flatBaseFaces(raw, { variant });
   const skin = enforceLayout(raw, { variant });
   await writeSkinPng(skin, outSkin);
@@ -51,8 +69,9 @@ export async function characterToSkin(characterImage, outSkin, opts = {}) {
   return {
     skin: outSkin,
     preview: previewOut,
-    branch,
-    rawAtlas: mockAtlas ? null : rawOut,
+    branch: usedBranch,
+    fallbackReason,
+    rawAtlas: mockAtlas || !genOutput ? null : rawOut,
     flatBaseFaces: flat,
     valid:
       problems.transparentBase.length === 0 &&
@@ -69,7 +88,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   };
   const [characterImage, outSkin] = pos;
   if (!characterImage || !outSkin) {
-    console.error('usage: node src/pipeline.js <characterImage> <outSkin.png> [--variant classic|slim] [--branch atlas|panel] [--mock <generatorOutput>]');
+    console.error('usage: node src/pipeline.js <characterImage> <outSkin.png> [--variant classic|slim] [--branch panel|atlas|fallback] [--mock <generatorOutput>]');
     process.exit(1);
   }
   const res = await characterToSkin(path.resolve(characterImage), path.resolve(outSkin), {

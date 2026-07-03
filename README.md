@@ -43,9 +43,10 @@ This writes:
 Options:
 
 ```sh
-node src/pipeline.js character.png skin.png --variant slim    # 3px arms (Alex model)
-node src/pipeline.js character.png skin.png --branch atlas    # experimental, see below
-node src/pipeline.js unused skin.png --mock panel.png         # reuse a saved model output, no API call
+node src/pipeline.js character.png skin.png --variant slim      # 3px arms (Alex model)
+node src/pipeline.js character.png skin.png --branch fallback   # free, no API call, see below
+node src/pipeline.js character.png skin.png --branch atlas      # experimental, see below
+node src/pipeline.js unused skin.png --mock panel.png           # reuse a saved model output, no API call
 ```
 
 Validate any skin file against the layout rules:
@@ -72,9 +73,23 @@ The key design decision: the model is never asked to draw the flat UV atlas dire
 
 This design follows the same conclusion as the BLOCK paper (arXiv 2603.03964), which uses a canonical dual-panel render as its intermediate stage. Post-processing ideas (background-distance transparency keying, whitespace masking) come from Monadical's minecraft_skin_generator. See `references/NOTES.md`.
 
+## Free no-LLM fallback
+
+The pipeline also includes a fully deterministic generator that needs no API key and costs nothing. It locates the character in the image, extracts its primary colors (hair, face, torso, legs), and paints a simple skin with fixed pixels for the eyes and mouth. The same input always produces a byte-identical skin.
+
+```sh
+node src/pipeline.js character.png skin.png --branch fallback
+```
+
+It runs automatically as a backup whenever the model path fails (API error, safety refusal, or no character found in the model output), so every input image yields a usable skin. When that happens the result JSON reports `"branch": "fallback"` and a `fallbackReason`.
+
+| Input | LLM branch | Fallback branch |
+|---|---|---|
+| <img src="examples/sui-input.png" width="140"> | <img src="examples/sui-preview.png" width="180"> | <img src="examples/sui-fallback.preview.png" width="180"> |
+
 ## Output guarantees
 
-Every produced skin passes these checks:
+Every input image yields a skin, and every produced skin passes these checks:
 
 - Never-rendered whitespace regions are fully transparent
 - The base layer is fully opaque (holes are filled with the average color of their face)
@@ -91,6 +106,7 @@ npm test
 
 - `tests/mock-test.js` degrades a real skin into a blurred, noisy mock model output and checks the pipeline reconstructs it with at most 2% pixel error
 - `tests/panel-roundtrip.js` renders a real skin as a front/back panel, maps it back through the panel projector, and requires exact front and back face recovery
+- `tests/fallback-test.js` checks the no-LLM fallback produces a valid skin and that two runs on the same input are byte-identical
 
 ## Module map
 
@@ -101,6 +117,7 @@ npm test
 | `src/gemini.js` | minimal REST client for Gemini image models |
 | `src/prompts.js` | the panel and atlas generation prompts |
 | `src/panelmap.js` | front+back panel to atlas projection, face synthesis |
+| `src/fallback.js` | deterministic no-LLM skin painter (color extraction + fixed face) |
 | `src/downsample.js` | dominant-color downsampler |
 | `src/enforce.js` | transparency and opacity enforcement |
 | `src/render.js` | front/back preview renderer |

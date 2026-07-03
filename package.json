@@ -4,7 +4,7 @@
   "description": "Turn any character image into a valid Minecraft skin using Nano Banana Pro plus deterministic post-processing",
   "type": "module",
   "scripts": {
-    "test": "node tests/mock-test.js && node tests/panel-roundtrip.js",
+    "test": "node tests/mock-test.js && node tests/panel-roundtrip.js && node tests/fallback-test.js",
     "validate": "node src/validate.js"
   },
   "keywords": [

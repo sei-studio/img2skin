@@ -17,7 +17,7 @@ const AIDX = (x, y) => (y * SKIN_SIZE + x) * 4;
 
 // --- panel loading ---------------------------------------------------------
 
-async function loadRaw(input) {
+export async function loadRaw(input) {
   const { data, info } = await sharp(input)
     .ensureAlpha()
     .raw()
@@ -26,7 +26,7 @@ async function loadRaw(input) {
 }
 
 // Estimate the background color from the image border pixels (modal bucket).
-function borderBackground(img) {
+export function borderBackground(img) {
   const { data, w, h } = img;
   const buckets = new Map();
   let transparent = 0;
@@ -48,7 +48,7 @@ function borderBackground(img) {
   return [best.r / best.n, best.g / best.n, best.b / best.n];
 }
 
-function isForeground(data, w, x, y, bg, tol = 40) {
+export function isForeground(data, w, x, y, bg, tol = 40) {
   const i = (y * w + x) * 4;
   if (data[i + 3] < 128) return false;
   if (!bg) return true;
@@ -56,7 +56,7 @@ function isForeground(data, w, x, y, bg, tol = 40) {
   return d > tol;
 }
 
-function bbox(img, x0, x1, bg) {
+export function bbox(img, x0, x1, bg) {
   const { data, w, h } = img;
   let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
   for (let y = 0; y < h; y++) {
