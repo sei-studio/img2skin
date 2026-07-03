@@ -6,10 +6,13 @@ valid 64x64 skin PNG out.
 ```
 character image
   → Nano Banana Pro (gemini-3-pro-image)
-      Branch A "atlas" (default): model emits the flat UV atlas directly,
-        with a real skin (assets/steve512.png) attached as layout reference
-      Branch B "panel" (fallback): model emits a canonical front+back
+      Branch B "panel" (default): model emits a canonical front+back
         dual-panel render → deterministic panel→atlas projection
+      Branch A "atlas" (experimental): model emits the flat UV atlas directly,
+        with a real skin (assets/steve512.png) attached as layout reference.
+        Probed 2026-07-03: banding roughly right but regions drift and bleed
+        per run — not grid-exact, unusable without a fine-tune. Panel renders
+        were consistent across runs; hence panel is the default.
   → dominant-color downsample (8x cells → 64x64, modal color per cell)
   → layout enforcement (whitespace transparent, base opaque, overlay
       background-keyed transparent)
@@ -61,5 +64,6 @@ See `references/NOTES.md` — Monadical SDXL post-processing (transparency
 restore via background-distance keying, whitespace mask) and BLOCK's bi-stage
 canonicalize-then-translate design informed both branches.
 
-Status: deterministic chain fully tested; live Gemini validation pending
-API credits (prepay depleted 2026-07-03; poller in place).
+Status: validated end-to-end 2026-07-03 with gemini-3-pro-image on three
+characters (anime girl, cat-girl, robot lobster) — all valid skins,
+recognizable in preview. ~16-20s + ~$0.13 per panel generation.

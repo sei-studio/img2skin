@@ -1,5 +1,6 @@
 node_modules
-.env
+.env*
 out/
+.DS_Store
 references/monadical/
 references/nick088/

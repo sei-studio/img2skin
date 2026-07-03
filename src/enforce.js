@@ -44,6 +44,29 @@ export function enforceLayout(rgba, { variant = "classic", cutoff = 30 } = {}) {
   const any = usedGrid(variant, 'both');
   const bg = estimateBackground(rgba);
 
+  // Base pixels that arrive transparent (or background-colored, when the
+  // generator used an opaque background) must become opaque without turning
+  // black: fill them with the average opaque color of their own face.
+  const faceFill = new Map(); // "x,y" -> [r,g,b]
+  for (const r of faceRects(variant, 'base')) {
+    let rr = 0, gg = 0, bb = 0, n = 0;
+    const holes = [];
+    for (let y = r.y; y < r.y + r.h; y++) {
+      for (let x = r.x; x < r.x + r.w; x++) {
+        const i = idx(x, y);
+        const transparent = rgba[i + 3] < 128;
+        const bgColored = !bg.transparentBg && dist(rgba, i, bg.color) <= cutoff;
+        if (transparent || (bgColored && !transparent)) holes.push(`${x},${y}`);
+        if (!transparent && !bgColored) {
+          rr += rgba[i]; gg += rgba[i + 1]; bb += rgba[i + 2]; n++;
+        }
+      }
+    }
+    if (n === 0) continue; // fully empty face; flatBaseFaces reports these
+    const avg = [Math.round(rr / n), Math.round(gg / n), Math.round(bb / n)];
+    for (const key of holes) faceFill.set(key, avg);
+  }
+
   for (let y = 0; y < SKIN_SIZE; y++) {
     for (let x = 0; x < SKIN_SIZE; x++) {
       const i = idx(x, y);
@@ -52,6 +75,8 @@ export function enforceLayout(rgba, { variant = "classic", cutoff = 30 } = {}) {
         out[i] = 0; out[i + 1] = 0; out[i + 2] = 0; out[i + 3] = 0;
       } else if (base[y][x]) {
         // base layer: always fully opaque
+        const fill = faceFill.get(`${x},${y}`);
+        if (fill) { out[i] = fill[0]; out[i + 1] = fill[1]; out[i + 2] = fill[2]; }
         out[i + 3] = 255;
       } else {
         // overlay: background-ish pixels -> transparent, rest opaque

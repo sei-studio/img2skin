@@ -17,7 +17,7 @@ const REFERENCE_ATLAS = new URL('../assets/steve512.png', import.meta.url).pathn
 export async function characterToSkin(characterImage, outSkin, opts = {}) {
   const {
     variant = 'classic',
-    branch = 'atlas', // 'atlas' (Branch A) | 'panel' (Branch B)
+    branch = 'panel', // 'panel' (Branch B, default) | 'atlas' (Branch A)
     mockAtlas = null, // pre-made generator output; skips the API call
     keepRaw = false,
   } = opts;
@@ -74,7 +74,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   const res = await characterToSkin(path.resolve(characterImage), path.resolve(outSkin), {
     variant: flag('variant') ?? 'classic',
-    branch: flag('branch') ?? 'atlas',
+    branch: flag('branch') ?? 'panel',
     mockAtlas: flag('mock') ? path.resolve(flag('mock')) : null,
     keepRaw: args.includes('--keep-raw'),
   });
