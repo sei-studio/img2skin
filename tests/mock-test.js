@@ -7,7 +7,7 @@ import { characterToSkin } from '../src/pipeline.js';
 import { loadRgba } from '../src/validate.js';
 import { usedGrid, SKIN_SIZE } from '../src/layout.js';
 
-const SRC = new URL('../../sei/resources/skins/sui.png', import.meta.url).pathname;
+const SRC = new URL('../examples/sui-skin.png', import.meta.url).pathname;
 const MOCK = 'out/mock-atlas.png';
 const OUT = 'out/mock-skin.png';
 
@@ -27,7 +27,7 @@ for (let i = 0; i < data.length; i++) {
 await sharp(data, { raw: info }).png().toFile(MOCK);
 
 // 2. Run the pipeline in mock mode.
-const res = await characterToSkin('unused.png', OUT, { mockAtlas: MOCK });
+const res = await characterToSkin('unused.png', OUT, { mockAtlas: MOCK, branch: 'atlas' });
 console.log('pipeline result:', JSON.stringify(res, null, 2));
 
 // 3. Compare reconstruction vs original over rendered pixels.

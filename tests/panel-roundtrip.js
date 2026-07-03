@@ -8,7 +8,7 @@ import { writeSkinPng } from '../src/downsample.js';
 import { enforceLayout } from '../src/enforce.js';
 import { parts, SKIN_SIZE } from '../src/layout.js';
 
-const SRC = new URL('../../sei/resources/skins/sui.png', import.meta.url).pathname;
+const SRC = new URL('../examples/sui-skin.png', import.meta.url).pathname;
 const PANEL = 'out/roundtrip-panel.png';
 const OUT = 'out/roundtrip-skin.png';
 
