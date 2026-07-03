@@ -17,7 +17,7 @@ const AIDX = (x, y) => (y * SKIN_SIZE + x) * 4;
 
 // --- panel loading ---------------------------------------------------------
 
-export async function loadRaw(input) {
+async function loadRaw(input) {
   const { data, info } = await sharp(input)
     .ensureAlpha()
     .raw()
@@ -26,7 +26,7 @@ export async function loadRaw(input) {
 }
 
 // Estimate the background color from the image border pixels (modal bucket).
-export function borderBackground(img) {
+function borderBackground(img) {
   const { data, w, h } = img;
   const buckets = new Map();
   let transparent = 0;
@@ -48,7 +48,7 @@ export function borderBackground(img) {
   return [best.r / best.n, best.g / best.n, best.b / best.n];
 }
 
-export function isForeground(data, w, x, y, bg, tol = 40) {
+function isForeground(data, w, x, y, bg, tol = 40) {
   const i = (y * w + x) * 4;
   if (data[i + 3] < 128) return false;
   if (!bg) return true;
@@ -56,7 +56,7 @@ export function isForeground(data, w, x, y, bg, tol = 40) {
   return d > tol;
 }
 
-export function bbox(img, x0, x1, bg) {
+function bbox(img, x0, x1, bg) {
   const { data, w, h } = img;
   let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
   for (let y = 0; y < h; y++) {
@@ -146,7 +146,7 @@ function writeFace(atlas, grid, cw, rect, dx, dy) {
 }
 
 // Synthesize a side face by tiling the edge column of a source face.
-export function synthSide(atlas, srcRect, srcEdgeX, dstRect, { darken = 0.9 } = {}) {
+function synthSide(atlas, srcRect, srcEdgeX, dstRect, { darken = 0.9 } = {}) {
   for (let y = 0; y < dstRect.h; y++) {
     const s = AIDX(srcRect.x + srcEdgeX, srcRect.y + Math.min(y, srcRect.h - 1));
     for (let x = 0; x < dstRect.w; x++) {
@@ -160,7 +160,7 @@ export function synthSide(atlas, srcRect, srcEdgeX, dstRect, { darken = 0.9 } = 
 }
 
 // Synthesize top/bottom by tiling a source row.
-export function synthCap(atlas, srcRect, srcEdgeY, dstRect, { darken = 1 } = {}) {
+function synthCap(atlas, srcRect, srcEdgeY, dstRect, { darken = 1 } = {}) {
   for (let y = 0; y < dstRect.h; y++) {
     for (let x = 0; x < dstRect.w; x++) {
       const s = AIDX(srcRect.x + Math.min(x, srcRect.w - 1), srcRect.y + srcEdgeY);

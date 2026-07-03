@@ -12,12 +12,9 @@ img2skin takes a picture of a character (art, portrait, mascot, anything) and pr
 | <img src="examples/lyra-input.png" width="140"> | <img src="examples/lyra-skin.png" width="128"> | <img src="examples/lyra-preview.png" width="180"> |
 | <img src="examples/clawd-input.png" width="140"> | <img src="examples/clawd-skin.png" width="128"> | <img src="examples/clawd-preview.png" width="180"> |
 
-## Requirements
+## Setup
 
-- Node.js 18 or newer
-- A Gemini API key with access to `gemini-3-pro-image` (get one at [Google AI Studio](https://aistudio.google.com/)). Each skin costs roughly $0.13 and takes 15 to 20 seconds.
-
-## Install
+Requires Node.js 18+ and a Gemini API key ([Google AI Studio](https://aistudio.google.com/)). Each skin costs roughly $0.13 and takes 15 to 20 seconds.
 
 ```sh
 git clone https://github.com/sei-studio/img2skin.git
@@ -34,101 +31,48 @@ set -a && source .env && set +a
 node src/pipeline.js character.png skin.png
 ```
 
-This writes:
-
-- `skin.png`: the finished 64x64 skin, ready to use in the Minecraft launcher or on a skin server
-- `skin.preview.png`: a front/back render so you can check the result without launching the game
-- `skin.raw-panel.png`: the raw model output, kept for debugging
-
-Options:
+This writes `skin.png` (ready for the Minecraft launcher or a skin server) and `skin.preview.png` (front/back render).
 
 ```sh
 node src/pipeline.js character.png skin.png --variant slim      # 3px arms (Alex model)
 node src/pipeline.js character.png skin.png --branch fallback   # free, no API call, see below
-node src/pipeline.js character.png skin.png --branch atlas      # experimental, see below
-node src/pipeline.js unused skin.png --mock panel.png           # reuse a saved model output, no API call
-```
-
-Validate any skin file against the layout rules:
-
-```sh
-node src/validate.js skin.png
 ```
 
 ## How it works
 
-```
-character image
-  -> Nano Banana Pro renders the character as a front+back dual panel
-     (blocky Minecraft style, fixed pose, magenta background)
-  -> panel is located, grid-sampled with dominant-color voting,
-     and projected onto the 64x64 skin UV atlas
-  -> side, top, and bottom faces are synthesized from the front-face edges
-  -> layout enforcement: never-rendered pixels made transparent,
-     base layer made opaque, overlay layer background-keyed
-  -> structural validation + preview render
-```
-
-The key design decision: the model is never asked to draw the flat UV atlas directly. Image models keep the general banding of the atlas but drift and bleed across region boundaries from run to run, so the result is not grid-exact. A front+back character render, in contrast, follows a strict layout contract reliably, and mapping it onto the atlas is a deterministic problem. The `--branch atlas` mode that asks for the atlas directly is kept for experimentation but is not recommended.
-
-This design follows the same conclusion as the BLOCK paper (arXiv 2603.03964), which uses a canonical dual-panel render as its intermediate stage. Post-processing ideas (background-distance transparency keying, whitespace masking) come from Monadical's minecraft_skin_generator. See `references/NOTES.md`.
+The model is never asked to draw the flat UV atlas directly (it drifts across region boundaries between runs). Instead it renders the character as a canonical front+back dual panel, which it does consistently, and the panel is then mapped onto the atlas deterministically: bounding box detection, dominant-color grid sampling, inverse view placement, synthesized side faces, and transparency/opacity enforcement. This follows the same conclusion as the BLOCK paper (arXiv 2603.03964); see `references/NOTES.md`.
 
 ## Free no-LLM fallback
 
-The pipeline also includes a fully deterministic generator that needs no API key and costs nothing. It locates the character in the image (background keying from the border palette, largest connected component, and a center-prior fallback for photos with busy backgrounds), finds the face from skin-tone row statistics, splits the subject into head, torso, arm, and leg regions, and grid-samples each region onto the matching skin faces, so clothing colors and patterns land on the body. Fixed pixels are stamped for the eyes and mouth. It handles full-body art, busts, and selfies, and the same input always produces a byte-identical skin.
+A fully deterministic generator that needs no API key: a fixed template skin (default hair style, textured shirt and pants, Steve/Alex-like skin tone, fixed eyes and mouth) recolored with the character's top colors. Primary color becomes the shirt, secondary the pants, tertiary the hair. It also runs automatically as a backup whenever the model path fails, so every input image yields a usable skin.
 
 ```sh
 node src/pipeline.js character.png skin.png --branch fallback
 ```
 
-It runs automatically as a backup whenever the model path fails (API error, safety refusal, or no character found in the model output), so every input image yields a usable skin. When that happens the result JSON reports `"branch": "fallback"` and a `fallbackReason`.
-
 | Input | LLM branch | Fallback branch |
 |---|---|---|
 | <img src="examples/sui-input.png" width="140"> | <img src="examples/sui-preview.png" width="180"> | <img src="examples/sui-fallback.preview.png" width="180"> |
 
-## Output guarantees
+## Layout
 
-Every input image yields a skin, and every produced skin passes these checks:
-
-- Never-rendered whitespace regions are fully transparent
-- The base layer is fully opaque (holes are filled with the average color of their face)
-- The overlay layer has background pixels keyed to transparent
-- Classic (4px arm) and slim (3px arm) layouts are both supported
-
-## Tests
-
-The deterministic chain is covered by offline tests that need no API key:
-
-```sh
-npm test
 ```
-
-- `tests/mock-test.js` degrades a real skin into a blurred, noisy mock model output and checks the pipeline reconstructs it with at most 2% pixel error
-- `tests/panel-roundtrip.js` renders a real skin as a front/back panel, maps it back through the panel projector, and requires exact front and back face recovery
-- `tests/fallback-test.js` checks the no-LLM fallback on three image types: a real bust image (valid and byte-identical output), a synthetic full-body figure (head, torso, and leg colors must land on the right skin faces), and a synthetic selfie with a busy photo background (subject detection must not fail)
-
-## Module map
-
-| File | Role |
-|---|---|
-| `src/pipeline.js` | CLI and end-to-end orchestration |
-| `src/layout.js` | 64x64 UV layout from box-unwrap geometry (classic and slim) |
-| `src/gemini.js` | minimal REST client for Gemini image models |
-| `src/prompts.js` | the panel and atlas generation prompts |
-| `src/panelmap.js` | front+back panel to atlas projection, face synthesis |
-| `src/fallback.js` | deterministic no-LLM generator (subject detection + region mapping) |
-| `src/downsample.js` | dominant-color downsampler |
-| `src/enforce.js` | transparency and opacity enforcement |
-| `src/render.js` | front/back preview renderer |
-| `src/validate.js` | structural validity checker |
-| `probe/` | scripts for measuring model layout consistency |
-
-## Limitations
-
-- Faces you cannot see in a front/back render (arm sides, top of the head, soles) are synthesized by darkening adjacent edge colors, not generated. They look fine at Minecraft resolution but are not detailed.
-- One model call per skin; results vary between runs like any generative model. If a skin comes out odd, rerun it.
-- Character images work best when the subject is a single character on a simple background.
+src/
+  pipeline.js     CLI and end-to-end orchestration
+  layout.js       64x64 UV layout (classic and slim)
+  gemini.js       minimal Gemini image API client
+  prompts.js      generation prompts
+  panelmap.js     front+back panel to atlas projection
+  downsample.js   dominant-color downsampler
+  fallback.js     no-LLM template recolor generator
+  enforce.js      transparency and opacity enforcement
+  render.js       front/back preview renderer
+  validate.js     structural validity check
+assets/           reference skins
+examples/         sample inputs and outputs
+probe/            model layout-consistency probes
+tests/            offline test suite (npm test, no API key needed)
+```
 
 ## License
 
