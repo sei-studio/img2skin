@@ -8,8 +8,8 @@ img2skin takes a picture of a character (art, portrait, mascot, anything) and pr
 
 | Input | Skin (64x64) | Preview |
 |---|---|---|
-| <img src="examples/sui-input.png" width="140"> | <img src="examples/sui-skin.png" width="128"> | <img src="examples/sui-preview.png" width="180"> |
-| <img src="examples/lyra-input.png" width="140"> | <img src="examples/lyra-skin.png" width="128"> | <img src="examples/lyra-preview.png" width="180"> |
+| <img src="examples/sui-input.png" width="140"> | <img src="examples/sui-skin.png" width="128"> | <img src="examples/sui-preview.png" width="160"> |
+| <img src="examples/lyra-input.png" width="140"> | <img src="examples/lyra-skin.png" width="128"> | <img src="examples/lyra-preview.png" width="160"> |
 | <img src="examples/clawd-input.png" width="140"> | <img src="examples/clawd-skin.png" width="128"> | <img src="examples/clawd-preview.png" width="180"> |
 
 The first two examples are slim (3px arms); the third is wide.
@@ -55,7 +55,7 @@ node src/pipeline.js character.png skin.png --branch fallback
 
 | Input | LLM branch | Fallback branch |
 |---|---|---|
-| <img src="examples/sui-input.png" width="140"> | <img src="examples/sui-preview.png" width="180"> | <img src="examples/sui-fallback.preview.png" width="180"> |
+| <img src="examples/sui-input.png" width="140"> | <img src="examples/sui-preview.png" width="160"> | <img src="examples/sui-fallback.preview.png" width="160"> |
 
 ## Layout
 
