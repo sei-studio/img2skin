@@ -12,6 +12,8 @@ img2skin takes a picture of a character (art, portrait, mascot, anything) and pr
 | <img src="examples/lyra-input.png" width="140"> | <img src="examples/lyra-skin.png" width="128"> | <img src="examples/lyra-preview.png" width="180"> |
 | <img src="examples/clawd-input.png" width="140"> | <img src="examples/clawd-skin.png" width="128"> | <img src="examples/clawd-preview.png" width="180"> |
 
+The first two examples are slim (3px arms); the third is wide.
+
 ## Setup
 
 Requires Node.js 18+ and a Gemini API key ([Google AI Studio](https://aistudio.google.com/)). Each skin costs roughly $0.13 and takes 15 to 20 seconds.

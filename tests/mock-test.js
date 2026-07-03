@@ -7,7 +7,8 @@ import { characterToSkin } from '../src/pipeline.js';
 import { loadRgba } from '../src/validate.js';
 import { usedGrid, SKIN_SIZE } from '../src/layout.js';
 
-const SRC = new URL('../examples/sui-skin.png', import.meta.url).pathname;
+// clawd-skin.png is the wide (classic) example; sui/lyra are slim.
+const SRC = new URL('../examples/clawd-skin.png', import.meta.url).pathname;
 const MOCK = 'out/mock-atlas.png';
 const OUT = 'out/mock-skin.png';
 
