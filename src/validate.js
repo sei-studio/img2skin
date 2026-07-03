@@ -34,7 +34,7 @@ export async function validateSkin(path, variant = 'classic') {
   return problems;
 }
 
-if (process.argv[2]) {
+if (import.meta.url === `file://${process.argv[1]}` && process.argv[2]) {
   const variant = process.argv[3] ?? 'classic';
   const p = await validateSkin(process.argv[2], variant);
   const tb = p.transparentBase.length;

@@ -7,7 +7,8 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/mock-test.js && node tests/panel-roundtrip.js",
+    "validate": "node src/validate.js"
   },
   "keywords": [],
   "author": "",

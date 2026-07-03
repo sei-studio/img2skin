@@ -5,8 +5,9 @@
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { generateImage } from './gemini.js';
-import { ATLAS_PROMPT } from './prompts.js';
+import { ATLAS_PROMPT, PANEL_PROMPT } from './prompts.js';
 import { downsampleToSkin, writeSkinPng } from './downsample.js';
+import { panelToAtlas } from './panelmap.js';
 import { enforceLayout, flatBaseFaces } from './enforce.js';
 import { renderPreview } from './render.js';
 import { validateSkin } from './validate.js';
@@ -14,22 +15,30 @@ import { validateSkin } from './validate.js';
 const REFERENCE_ATLAS = new URL('../assets/steve512.png', import.meta.url).pathname;
 
 export async function characterToSkin(characterImage, outSkin, opts = {}) {
-  const { variant = 'classic', mockAtlas = null, keepRaw = false } = opts;
-  const rawOut = outSkin.replace(/\.png$/, '.raw-atlas.png');
+  const {
+    variant = 'classic',
+    branch = 'atlas', // 'atlas' (Branch A) | 'panel' (Branch B)
+    mockAtlas = null, // pre-made generator output; skips the API call
+    keepRaw = false,
+  } = opts;
+  const rawOut = outSkin.replace(/\.png$/, `.raw-${branch}.png`);
 
-  let atlasInput;
+  let genOutput;
   if (mockAtlas) {
-    atlasInput = mockAtlas;
+    genOutput = mockAtlas;
   } else {
     const [buf] = await generateImage({
-      prompt: ATLAS_PROMPT,
-      images: [REFERENCE_ATLAS, characterImage],
+      prompt: branch === 'panel' ? PANEL_PROMPT : ATLAS_PROMPT,
+      images: branch === 'panel' ? [characterImage] : [REFERENCE_ATLAS, characterImage],
     });
     await writeFile(rawOut, buf);
-    atlasInput = rawOut;
+    genOutput = rawOut;
   }
 
-  const raw = await downsampleToSkin(atlasInput);
+  const raw =
+    branch === 'panel'
+      ? await panelToAtlas(genOutput, { variant })
+      : await downsampleToSkin(genOutput);
   const flat = flatBaseFaces(raw, { variant });
   const skin = enforceLayout(raw, { variant });
   await writeSkinPng(skin, outSkin);
@@ -38,12 +47,11 @@ export async function characterToSkin(characterImage, outSkin, opts = {}) {
   const previewOut = outSkin.replace(/\.png$/, '.preview.png');
   await renderPreview(skin, previewOut, { variant });
 
-  if (!keepRaw && !mockAtlas) {
-    // keep raw atlas around by default only when debugging
-  }
+  void keepRaw;
   return {
     skin: outSkin,
     preview: previewOut,
+    branch,
     rawAtlas: mockAtlas ? null : rawOut,
     flatBaseFaces: flat,
     valid:
@@ -61,11 +69,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   };
   const [characterImage, outSkin] = pos;
   if (!characterImage || !outSkin) {
-    console.error('usage: node src/pipeline.js <characterImage> <outSkin.png> [--variant classic|slim] [--mock <atlasImage>]');
+    console.error('usage: node src/pipeline.js <characterImage> <outSkin.png> [--variant classic|slim] [--branch atlas|panel] [--mock <generatorOutput>]');
     process.exit(1);
   }
   const res = await characterToSkin(path.resolve(characterImage), path.resolve(outSkin), {
     variant: flag('variant') ?? 'classic',
+    branch: flag('branch') ?? 'atlas',
     mockAtlas: flag('mock') ? path.resolve(flag('mock')) : null,
     keepRaw: args.includes('--keep-raw'),
   });
