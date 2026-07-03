@@ -76,14 +76,31 @@ export async function extractColors(input, count = 3) {
 
 // --- template painting -------------------------------------------------------
 
-// Baked-in cloth texture: a subtle deterministic weave.
-const weave = (x, y) => 1 + ((((x * 31 + y * 17) % 7) - 3) * 0.02) + ((x + y) % 2 ? -0.02 : 0.02);
+// Deterministic pixel hash for texture. No alternating patterns: a regular
+// checker reads as PNG transparency at skin resolution.
+function hash2(x, y) {
+  let h = (x * 374761393 + y * 668265263) >>> 0;
+  h = ((h ^ (h >>> 13)) * 1274126177) >>> 0;
+  return (h ^ (h >>> 16)) >>> 0;
+}
 
-function fill(atlas, rect, color, mul = 1) {
+// Cloth texture like the default Minecraft skins: mostly flat with scattered
+// clusters of darker pixels.
+function texMul(x, y, spots) {
+  let m = 1 + ((hash2(x, y) % 5) - 2) * 0.01;
+  if (spots) {
+    const s = hash2(x + 101, y + 57) % 100;
+    if (s < 10) m *= 0.84;
+    else if (s < 18) m *= 0.92;
+  }
+  return m;
+}
+
+function fill(atlas, rect, color, mul = 1, spots = false) {
   for (let y = 0; y < rect.h; y++)
     for (let x = 0; x < rect.w; x++) {
       const i = AIDX(rect.x + x, rect.y + y);
-      const j = weave(rect.x + x, rect.y + y) * mul;
+      const j = texMul(rect.x + x, rect.y + y, spots) * mul;
       atlas[i] = clamp(color[0] * j);
       atlas[i + 1] = clamp(color[1] * j);
       atlas[i + 2] = clamp(color[2] * j);
@@ -134,6 +151,17 @@ export async function fallbackAtlas(characterImage, { variant = 'classic' } = {}
   px(atlas, H.front, 0, 3, hair); px(atlas, H.front, 7, 3, hair); // side locks
   px(atlas, H.front, 0, 4, hair); px(atlas, H.front, 7, 4, hair);
   fill(atlas, H.bottom, SKIN, 0.7);
+  // 3D hair layer: the hat overlay carries the same hair slightly lighter,
+  // so it stands off the head in game.
+  const HO = P.head.overlay;
+  fill(atlas, HO.top, darken(hair, 1.08));
+  fill(atlas, HO.back, hair, 0.96);
+  for (const side of ['right', 'left']) fill(atlas, rows(HO[side], 0, 5), hair, 0.9);
+  fill(atlas, rows(HO.front, 0, 2), darken(hair, 1.05));
+  px(atlas, HO.front, 0, 2, hair); px(atlas, HO.front, 1, 2, hair);
+  px(atlas, HO.front, 6, 2, hair); px(atlas, HO.front, 7, 2, hair);
+  px(atlas, HO.front, 0, 3, hair); px(atlas, HO.front, 7, 3, hair);
+  px(atlas, HO.front, 0, 4, hair); px(atlas, HO.front, 7, 4, hair);
   // Fixed face: eye whites, pupils, mouth.
   px(atlas, H.front, 1, 5, [245, 245, 245]);
   px(atlas, H.front, 6, 5, [245, 245, 245]);
@@ -146,7 +174,7 @@ export async function fallbackAtlas(characterImage, { variant = 'classic' } = {}
   const B = P.body.base;
   for (const side of ['front', 'back', 'right', 'left']) {
     const mul = SIDE_MUL[side];
-    fill(atlas, B[side], shirt, mul);
+    fill(atlas, B[side], shirt, mul, true);
     fill(atlas, rows(B[side], 0, 1), darken(shirt, 0.85), mul); // collar
     fill(atlas, rows(B[side], 11, 12), darken(shirt, 0.8), mul); // hem
   }
@@ -158,7 +186,7 @@ export async function fallbackAtlas(characterImage, { variant = 'classic' } = {}
     const A = arm.base;
     for (const side of ['front', 'back', 'right', 'left']) {
       const mul = SIDE_MUL[side];
-      fill(atlas, rows(A[side], 0, 9), shirt, mul);
+      fill(atlas, rows(A[side], 0, 9), shirt, mul, true);
       fill(atlas, rows(A[side], 9, 10), darken(shirt, 0.8), mul); // cuff
       fill(atlas, rows(A[side], 10, 12), SKIN, mul); // hands
     }
@@ -173,7 +201,7 @@ export async function fallbackAtlas(characterImage, { variant = 'classic' } = {}
     for (const side of ['front', 'back', 'right', 'left']) {
       const mul = SIDE_MUL[side];
       fill(atlas, rows(L[side], 0, 1), darken(pants, 0.75), mul); // belt
-      fill(atlas, rows(L[side], 1, 10), pants, mul);
+      fill(atlas, rows(L[side], 1, 10), pants, mul, true);
       fill(atlas, rows(L[side], 10, 12), shoe, mul); // shoes
     }
     fill(atlas, L.top, pants, 0.9);

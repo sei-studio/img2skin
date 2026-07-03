@@ -1,6 +1,6 @@
 // Character image -> valid Minecraft skin.
 // Usage:
-//   node src/pipeline.js <characterImage> <outSkin.png> [--variant classic|slim]
+//   node src/pipeline.js <characterImage> <outSkin.png> [--variant wide|slim]
 //                        [--mock <atlasImage>] [--keep-raw]
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -15,13 +15,17 @@ import { validateSkin } from './validate.js';
 
 const REFERENCE_ATLAS = new URL('../assets/steve512.png', import.meta.url).pathname;
 
+// 'wide' is the launcher's name for the classic 4px-arm model.
+const normalizeVariant = (v) => (v === 'wide' ? 'classic' : v);
+
 export async function characterToSkin(characterImage, outSkin, opts = {}) {
   const {
-    variant = 'classic',
+    variant: rawVariant = 'classic',
     branch = 'panel', // 'panel' (Branch B, default) | 'atlas' (Branch A)
     mockAtlas = null, // pre-made generator output; skips the API call
     keepRaw = false,
   } = opts;
+  const variant = normalizeVariant(rawVariant);
   const rawOut = outSkin.replace(/\.png$/, `.raw-${branch}.png`);
 
   let usedBranch = branch;
@@ -88,7 +92,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   };
   const [characterImage, outSkin] = pos;
   if (!characterImage || !outSkin) {
-    console.error('usage: node src/pipeline.js <characterImage> <outSkin.png> [--variant classic|slim] [--branch panel|atlas|fallback] [--mock <generatorOutput>]');
+    console.error('usage: node src/pipeline.js <characterImage> <outSkin.png> [--variant wide|slim] [--branch panel|atlas|fallback] [--mock <generatorOutput>]');
     process.exit(1);
   }
   const res = await characterToSkin(path.resolve(characterImage), path.resolve(outSkin), {

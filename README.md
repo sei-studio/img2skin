@@ -34,7 +34,8 @@ node src/pipeline.js character.png skin.png
 This writes `skin.png` (ready for the Minecraft launcher or a skin server) and `skin.preview.png` (front/back render).
 
 ```sh
-node src/pipeline.js character.png skin.png --variant slim      # 3px arms (Alex model)
+node src/pipeline.js character.png skin.png --variant slim      # 3px arms (Alex model); default is wide
+node src/pipeline.js character.png skin.png --variant wide      # 4px arms (Steve model), the default
 node src/pipeline.js character.png skin.png --branch fallback   # free, no API call, see below
 ```
 
